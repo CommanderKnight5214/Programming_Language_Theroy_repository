@@ -87,6 +87,7 @@
     (cond
       ((number? no-code) (list 'num-lit-exp no-code))
       ((symbol? no-code) (list 'var-exp no-code))
+      ((eq? (car no-code) 'global) (list 'global-var-exp (cadr no-code)))
       ((eq? (car no-code) 'do-mathy-stuff)
        (list 'math-exp (cadr no-code) (no-parser (caddr no-code)) (no-parser (cadddr no-code))))
       ((eq? (car no-code) 'local-vars)
@@ -134,7 +135,9 @@
     
 (define run-parsed-function-code
   (lambda (parsed-no-code-function env)
-    (run-parsed-code (cadr parsed-no-code-function) env))) 
+    (run-parsed-code (cadr (caddr parsed-no-code-function)) env)))
+
+;(call (function (global (a)) (call (function (r) a) a)) 5))
 
 (define run-parsed-code
   (lambda (parsed-no-code env)
@@ -160,28 +163,51 @@
       (else
        (if (eq? (car (cadr (caddr (cadr parsed-no-code)))) 'call-exp)
            (run-parsed-function-code
-              (cadr parsed-no-code)
-              env)
+            (cadr parsed-no-code) env)
            (run-parsed-function-code
-              (cadr parsed-no-code)
-              (extend-env
-               (cdr (cadr (cadr parsed-no-code)))
-               (map (lambda (packet) (run-parsed-code (car packet) (cadr packet))) (map (lambda (x) (list x env)) (caddr parsed-no-code)))
-               env)))))))
+            (cadr parsed-no-code)
+           (extend-env
+            (cdr (cadr (cadr parsed-no-code)))
+            (map (lambda (packet) (run-parsed-code (car packet) (cadr packet))) (map (lambda (x) (list x env)) (caddr parsed-no-code)))
+         env)))))))
 
 (define env '((age 21) (a 7) (b 5) (c 23)))
-(define sample-no-code '(call (function (a) (call (function (r) a) 10)) 5))
+;(((r 5) ((a 5))) ((age 21) (a 7) (b 5) (c 23)))
+(define sample-no-code '(call (function (global (a)) (call (function (r) a) a)) 5))
 (define parsed-no-code (no-parser sample-no-code))
-parsed-no-code
 (run-parsed-code parsed-no-code env)
+
+
+;Example psuedocode
+#|
+
+(((a 5)) (global (a 7)))
+((temp ((a 5))) ((a 7)))
+
+
+int a = 7;
+func main() -> execute in env consisting of ((global (a 7)))
+{
+  f1(5);
+  print(a);
+}
+func f1(a) -> execute in env consisting of (((a 5)) (global (a 7)))
+{
+  f2(a); -> execute in env consisting of only global ((global (a 7)))
+  print(a);
+}
+
+func f2(r) -> execute in env consisting of only global (((r 5)) (global (a 7)))
+{
+  print(a); //print a 4 by error
+}
+
+
 
 ;((b 7) (a 5) (z 2))
 ;((b a z) (7 5 2))
 ;(env-let-mapper '((b 7) (a 5) (z 2))) 
 
- 
-;Example psuedocode
-#|
 int a = 7;
 
 main()
