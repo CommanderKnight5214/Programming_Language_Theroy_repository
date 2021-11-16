@@ -34,5 +34,5 @@
       (else (symbol-block-exp-helper (cdr flattened-block-exp))))))
 
 
-
+(count-block-exp '(1 A (2 B (3 C (4 D (5 D (6 E (7 F (8 G)))))))))
 (collect-symbols '(1 A (2 B (3 C (4 D (5 D (6 E (7 F (8 G)))))))))
